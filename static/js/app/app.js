@@ -11,20 +11,38 @@ pollApp.config(['$routeProvider', '$locationProvider',
         templateUrl: '/static/partials/index.html',
         controller: 'IndexCtrl'
       }).
+      when('/about', {
+        templateUrl: '/static/partials/about.html',
+        controller: 'AboutCtrl'
+      }).
       when('/:pollId', {
-        templateUrl: '/static/partials/poll.html',
+        templateUrl: '/static/partials/vote.html',
         controller: 'PollCtrl'
+      }).
+      when('/:pollId/results', {
+        templateUrl: '/static/partials/results.html',
+        controller: 'ResultsCtrl'
       }).
       otherwise({
         redirectTo: '/'
       });
   }]);
 
+pollApp.run(['$rootScope', '$location', function($rootScope, $location){
+   var path = function() { return $location.path();};
+   $rootScope.$watch(path, function(newVal, oldVal){
+     $rootScope.activetab = newVal;
+   });
+}]);
+
 pollApp.factory('VoteStreamService', function() {
   var service = {};
  
   service.connect = function(pollId) {
-    if(service.ws) { return; }
+    if(service.ws) { 
+      service.ws.close();
+      service.ws = null;
+    }
  
     var l = window.location;
     var url = ((l.protocol === "https:") ? "wss://" : "ws://") +
@@ -39,7 +57,7 @@ pollApp.factory('VoteStreamService', function() {
     }
  
     ws.onmessage = function(message) {
-      service.callback(message.data);
+      service.callback(JSON.parse(message.data));
     };
  
     service.ws = ws;

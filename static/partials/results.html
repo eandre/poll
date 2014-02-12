@@ -1,0 +1,21 @@
+<div style="text-align: left">
+	<div class="page-header">
+		<h1 id="poll-question">
+			{{poll.question}}
+			<small>Vote results</small>
+		</h1>
+	</div>
+	<div id="poll-answers">
+		<div class="answer" ng-repeat="answer in poll.answers">
+			<h2>{{$index+1}}. {{answer}}</h2>
+			<div class="progress progress-striped active" style="width: 60%">
+				<div class="progress-bar" role="progressbar" aria-valuenow="{{voteRatio($index)*100}}"
+					aria-valuemin="0" aria-valuemax="100" style="width: {{voteRatio($index)*100}}%"
+					ng-class="{'progress-bar-success': $index==poll.winningIndex}">
+				</div>
+			</div>
+			<ng-pluralize count="poll.counts[$index]" when="{'0': 'No votes.', 'one': '1 vote.', 'other': '{} votes.'}">
+			</ng-pluralize>
+		</div>
+	</div>
+</div>
