@@ -62,8 +62,14 @@ func NewPoll(question string, answers ...string) (*Poll, error) {
 	return poll, nil
 }
 
-func (p *Poll) RecordAnswers(indices ...int) error {
-	numIndices := len(p.Answers)
+func (p *Poll) RecordAnswers(indices ...uint32) error {
+	if len(indices) == 0 {
+		return ErrNoAnswers
+	}
+
+	numIndices := uint32(len(p.Answers))
+
+	// Validate
 	for i, idx := range indices {
 		// Make sure the index is valid
 		if idx >= numIndices {
@@ -76,8 +82,10 @@ func (p *Poll) RecordAnswers(indices ...int) error {
 				return ErrDuplicateAnswer
 			}
 		}
+	}
 
-		// Increment the count
+	// Increment the counts
+	for _, idx := range indices {
 		atomic.AddUint32(&p.Counts[idx], 1)
 	}
 
