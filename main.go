@@ -8,6 +8,7 @@ import (
 	"net/http"
 	"runtime"
 	"strconv"
+	"strings"
 )
 
 func templateAdd(a int, b int) int { return a + b }
@@ -55,7 +56,6 @@ func PollInfo(r render.Render, params martini.Params) {
 }
 
 func VotePoll(req *http.Request, r render.Render, params martini.Params) {
-	log.Println(req.RemoteAddr)
 	id, err := strconv.ParseUint(params["id"], 10, 64)
 	if err != nil {
 		r.JSON(400, err.Error())
@@ -87,10 +87,11 @@ func VotePoll(req *http.Request, r render.Render, params martini.Params) {
 		answers = append(answers, uint32(id)-1)
 	}
 
-	canVote := poll.RecordOrigin([]byte(req.RemoteAddr))
+	ipAddr := strings.SplitN(req.RemoteAddr, ":", 2)[0]
+	canVote := poll.RecordOrigin([]byte(ipAddr))
 	if !canVote {
 		// Don't show this to the user
-		log.Println("Duplicate vote by address", req.RemoteAddr)
+		log.Println("Duplicate vote by address", ipAddr)
 		r.JSON(200, nil)
 		return
 	}
