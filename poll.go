@@ -2,6 +2,8 @@ package main
 
 import (
 	"errors"
+	"github.com/willf/bloom"
+	"sync"
 	"sync/atomic"
 )
 
@@ -12,6 +14,7 @@ var (
 	ErrTooManyAnswers  = errors.New("Too many answers defined")
 	ErrTooShort        = errors.New("Input too short")
 	ErrTooLong         = errors.New("Input too long")
+	ErrAlreadyVoted    = errors.New("You have already voted")
 )
 
 const (
@@ -20,12 +23,20 @@ const (
 	MaxLength  = 127
 )
 
+// Bloom filter definition; about p=0.0001, n=1000
+const (
+	FilterM = 19171
+	FilterK = 13
+)
+
 type Poll struct {
 	MultipleChoice bool     `json:"multipleChoice"`
 	Question       string   `json:"question"`
 	Answers        []string `json:"answers"`
 	Counts         []uint32 `json:"counts"`
 	stopped        int32
+	filter         *bloom.BloomFilter
+	filterMutex    sync.Mutex
 }
 
 func checkLength(s string) error {
@@ -37,7 +48,7 @@ func checkLength(s string) error {
 	return nil
 }
 
-func NewPoll(multipleChoice bool, question string, answers ...string) (*Poll, error) {
+func NewPoll(checkDuplicates, multipleChoice bool, question string, answers ...string) (*Poll, error) {
 	if len(answers) == 0 {
 		return nil, ErrNoAnswers
 	} else if len(answers) > MaxAnswers {
@@ -54,6 +65,10 @@ func NewPoll(multipleChoice bool, question string, answers ...string) (*Poll, er
 		stopped:        0,
 	}
 
+	if checkDuplicates {
+		poll.filter = bloom.New(FilterM, FilterK)
+	}
+
 	for i, answer := range answers {
 		if err := checkLength(answer); err != nil {
 			return nil, err
@@ -62,6 +77,19 @@ func NewPoll(multipleChoice bool, question string, answers ...string) (*Poll, er
 	}
 
 	return poll, nil
+}
+
+func (p *Poll) RecordOrigin(key []byte) bool {
+	if p.filter == nil {
+		return true
+	}
+
+	p.filterMutex.Lock()
+	defer p.filterMutex.Unlock()
+
+	success := !p.filter.Test(key)
+	p.filter.Add(key)
+	return success
 }
 
 func (p *Poll) RecordAnswers(indices ...uint32) error {

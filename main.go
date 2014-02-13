@@ -5,26 +5,15 @@ import (
 	"github.com/codegangsta/martini-contrib/render"
 	"github.com/gorilla/websocket"
 	"log"
-	"math/rand"
 	"net/http"
 	"runtime"
 	"strconv"
-	"time"
 )
 
 func templateAdd(a int, b int) int { return a + b }
 
 func main() {
 	runtime.GOMAXPROCS(4)
-
-	go func() {
-		for {
-			answer := uint32(rand.Intn(len(poll.Answers)))
-			poll.RecordAnswers(answer)
-			duration := time.Duration(rand.Intn(500)) * time.Millisecond
-			time.Sleep(duration)
-		}
-	}()
 
 	m := martini.New()
 	r := martini.NewRouter()
@@ -66,6 +55,7 @@ func PollInfo(r render.Render, params martini.Params) {
 }
 
 func VotePoll(req *http.Request, r render.Render, params martini.Params) {
+	log.Println(req.RemoteAddr)
 	id, err := strconv.ParseUint(params["id"], 10, 64)
 	if err != nil {
 		r.JSON(400, err.Error())
@@ -97,6 +87,14 @@ func VotePoll(req *http.Request, r render.Render, params martini.Params) {
 		answers = append(answers, uint32(id)-1)
 	}
 
+	canVote := poll.RecordOrigin([]byte(req.RemoteAddr))
+	if !canVote {
+		// Don't show this to the user
+		log.Println("Duplicate vote by address", req.RemoteAddr)
+		r.JSON(200, nil)
+		return
+	}
+
 	if err = poll.RecordAnswers(answers...); err != nil {
 		log.Println("Could not record answers:", answers, err)
 		r.JSON(400, err.Error())
@@ -115,8 +113,9 @@ func CreatePoll(req *http.Request, r render.Render) {
 	}
 
 	multipleChoice := req.PostForm.Get("multipleChoice") == "true"
-	poll, err := NewPoll(multipleChoice, req.PostForm.Get("question"),
-		req.PostForm["answer[]"]...)
+	checkDuplicates := req.PostForm.Get("checkDuplicates") == "true"
+	poll, err := NewPoll(checkDuplicates, multipleChoice,
+		req.PostForm.Get("question"), req.PostForm["answer[]"]...)
 	if err != nil {
 		log.Println("Could not create poll:", err)
 		r.JSON(400, err.Error())

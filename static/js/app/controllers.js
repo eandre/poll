@@ -39,7 +39,8 @@ pollControllers.controller('IndexCtrl', ['$scope', '$route', '$http', '$location
       var data = $.param({
         question: $scope.question,
         answer: answers,
-        multipleChoice: $scope.multipleChoice
+        multipleChoice: $scope.multipleChoice,
+        checkDuplicates: $scope.checkDuplicates
       });
       $http({
         method: 'POST',
