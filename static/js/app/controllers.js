@@ -43,7 +43,7 @@ pollControllers.controller('IndexCtrl', ['$scope', '$route', '$http', '$location
         data: data,
         headers: {'Content-Type': 'application/x-www-form-urlencoded'},
       }).then(function(data) {
-        $location.path("/" + data.data + "/results");
+        $location.path("/" + data.data);
       }, function(error) {
         $scope.submitError = error;
       });

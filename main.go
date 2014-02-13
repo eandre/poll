@@ -1,6 +1,7 @@
 package main
 
 import (
+    "runtime"
 	"github.com/codegangsta/martini"
 	"github.com/codegangsta/martini-contrib/render"
 	"github.com/gorilla/websocket"
@@ -14,6 +15,7 @@ import (
 func templateAdd(a int, b int) int { return a + b }
 
 func main() {
+    runtime.GOMAXPROCS(4)
 	// Create a dummy poll
 	poll, _ := NewPoll("Hello?", "Are you still there?", "I don't hate you", "Really!")
 	AddPoll(poll)
@@ -131,7 +133,8 @@ func CreatePoll(req *http.Request, r render.Render) {
 func VoteStream(w http.ResponseWriter, req *http.Request, params martini.Params) {
 	ws, err := websocket.Upgrade(w, req, nil, 1024, 1024)
 	if _, ok := err.(websocket.HandshakeError); ok {
-		http.Error(w, "Not a websocket handshake", 400)
+        log.Println("Could not handshake:", err.Error())
+		http.Error(w, "Not a websocket handshake", 401)
 		return
 	} else if err != nil {
 		log.Println(err)
