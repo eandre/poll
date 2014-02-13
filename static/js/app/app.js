@@ -46,7 +46,7 @@ pollApp.factory('VoteStreamService', function() {
  
     var l = window.location;
     var url = ((l.protocol === "https:") ? "wss://" : "ws://") +
-      l.hostname + (((l.port != 80) && (l.port != 443)) ? ":" + l.port : "") +
+      l.hostname + ":3000" +
       "/api/poll/" + pollId + "/stream";
     var ws = new WebSocket(url);
  
