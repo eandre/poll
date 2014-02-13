@@ -6,7 +6,7 @@ pollControllers.controller('IndexCtrl', ['$scope', '$route', '$http', '$location
     $scope.answers = [];
     $scope.numAnswers = 0;
     $scope.minAnswers = 2;
-    $scope.maxAnswers = 10;
+    $scope.maxAnswers = 9;
 
     for ( var i = 0; i < $scope.maxAnswers; i++ ) {
       $scope.answers.push({});
@@ -36,7 +36,11 @@ pollControllers.controller('IndexCtrl', ['$scope', '$route', '$http', '$location
         }
       }
 
-      var data = $.param({question: $scope.question, answer: answers});
+      var data = $.param({
+        question: $scope.question,
+        answer: answers,
+        multipleChoice: $scope.multipleChoice
+      });
       $http({
         method: 'POST',
         url: "/api/poll/",
@@ -66,6 +70,7 @@ pollControllers.controller('PollCtrl', ['$scope', '$routeParams', '$http', '$loc
     $http({method: 'GET', url: "/api/poll/" + $scope.pollId + "/"})
       .then(function(result) {
         $scope.poll = processPoll(result['data']);
+        $scope.poll.selectedAnswer = -1;
       }, function(error) {
         $location.path("/");
       });
@@ -76,9 +81,14 @@ pollControllers.controller('PollCtrl', ['$scope', '$routeParams', '$http', '$loc
 
       $scope.vote = function() {
         var answers = [];
-        for ( var i = 0; i < $scope.selectedAnswers.length; i++ ) {
-          answers.push($scope.selectedAnswers[i].index + 1);
+        if ( $scope.poll.multipleChoice ) {
+          for ( var i = 0; i < $scope.selectedAnswers.length; i++ ) {
+            answers.push($scope.selectedAnswers[i].index + 1);
+          }
+        } else {
+          answers.push($scope.poll.selectedAnswer);
         }
+
         var data = $.param({answer: answers});
         $http({
           method: 'POST',
@@ -147,7 +157,11 @@ pollControllers.controller('ResultsCtrl', ['$scope', '$routeParams', '$http',
   }]);
 
 function processPoll(data) {
-  var poll = {question: data.question, answers: []};
+  var poll = {
+    question: data.question,
+    answers: [],
+    multipleChoice: data.multipleChoice
+  };
   for ( var i = 0; i < data.answers.length; i++ ) {
     poll.answers.push({text: data.answers[i], count: data.counts[i], index: i});
   }

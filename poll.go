@@ -21,10 +21,11 @@ const (
 )
 
 type Poll struct {
-	Question string   `json:"question"`
-	Answers  []string `json:"answers"`
-	Counts   []uint32 `json:"counts"`
-	stopped  int32
+	MultipleChoice bool     `json:"multipleChoice"`
+	Question       string   `json:"question"`
+	Answers        []string `json:"answers"`
+	Counts         []uint32 `json:"counts"`
+	stopped        int32
 }
 
 func checkLength(s string) error {
@@ -36,7 +37,7 @@ func checkLength(s string) error {
 	return nil
 }
 
-func NewPoll(question string, answers ...string) (*Poll, error) {
+func NewPoll(multipleChoice bool, question string, answers ...string) (*Poll, error) {
 	if len(answers) == 0 {
 		return nil, ErrNoAnswers
 	} else if len(answers) > MaxAnswers {
@@ -46,10 +47,11 @@ func NewPoll(question string, answers ...string) (*Poll, error) {
 	}
 
 	poll := &Poll{
-		Question: question,
-		Answers:  make([]string, len(answers)),
-		Counts:   make([]uint32, len(answers)),
-		stopped:  0,
+		MultipleChoice: multipleChoice,
+		Question:       question,
+		Answers:        make([]string, len(answers)),
+		Counts:         make([]uint32, len(answers)),
+		stopped:        0,
 	}
 
 	for i, answer := range answers {
@@ -65,6 +67,8 @@ func NewPoll(question string, answers ...string) (*Poll, error) {
 func (p *Poll) RecordAnswers(indices ...uint32) error {
 	if len(indices) == 0 {
 		return ErrNoAnswers
+	} else if len(indices) != 1 && !p.MultipleChoice {
+		return ErrTooManyAnswers
 	}
 
 	numIndices := uint32(len(p.Answers))

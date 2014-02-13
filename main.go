@@ -1,13 +1,13 @@
 package main
 
 import (
-    "runtime"
 	"github.com/codegangsta/martini"
 	"github.com/codegangsta/martini-contrib/render"
 	"github.com/gorilla/websocket"
 	"log"
 	"math/rand"
 	"net/http"
+	"runtime"
 	"strconv"
 	"time"
 )
@@ -15,10 +15,7 @@ import (
 func templateAdd(a int, b int) int { return a + b }
 
 func main() {
-    runtime.GOMAXPROCS(4)
-	// Create a dummy poll
-	poll, _ := NewPoll("Hello?", "Are you still there?", "I don't hate you", "Really!")
-	AddPoll(poll)
+	runtime.GOMAXPROCS(4)
 
 	go func() {
 		for {
@@ -117,7 +114,9 @@ func CreatePoll(req *http.Request, r render.Render) {
 		return
 	}
 
-	poll, err := NewPoll(req.PostForm.Get("question"), req.PostForm["answer[]"]...)
+	multipleChoice := req.PostForm.Get("multipleChoice") == "true"
+	poll, err := NewPoll(multipleChoice, req.PostForm.Get("question"),
+		req.PostForm["answer[]"]...)
 	if err != nil {
 		log.Println("Could not create poll:", err)
 		r.JSON(400, err.Error())
@@ -133,7 +132,7 @@ func CreatePoll(req *http.Request, r render.Render) {
 func VoteStream(w http.ResponseWriter, req *http.Request, params martini.Params) {
 	ws, err := websocket.Upgrade(w, req, nil, 1024, 1024)
 	if _, ok := err.(websocket.HandshakeError); ok {
-        log.Println("Could not handshake:", err.Error())
+		log.Println("Could not handshake:", err.Error())
 		http.Error(w, "Not a websocket handshake", 401)
 		return
 	} else if err != nil {
